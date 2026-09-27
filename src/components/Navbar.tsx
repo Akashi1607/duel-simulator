@@ -1,29 +1,18 @@
 import Link from "next/link";
 import { CircleDollarSign, Gem } from "lucide-react";
 import { auth, signOut } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUserWallet } from "@/lib/current-user";
 
 export async function Navbar() {
   const session = await auth();
-  const userId = session?.user ? (session.user as { id: string }).id : null;
 
-  // Uma sessão JWT pode sobreviver a um reset/troca do banco. Antes de criar
-  // a carteira, confirme que o usuário da sessão ainda existe para não violar
-  // a chave estrangeira Wallet_userId_fkey.
-  const currentUser = userId
-    ? await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      })
+  // Uma sessão JWT pode sobreviver a um reset/troca do banco; getCurrentUserWallet
+  // confirma que o usuário da sessão ainda existe antes de expor a carteira.
+  const currentUserWallet = await getCurrentUserWallet();
+  const currentUser = currentUserWallet
+    ? { id: currentUserWallet.userId }
     : null;
-
-  const wallet = currentUser
-    ? await prisma.wallet.upsert({
-        where: { userId: currentUser.id },
-        update: {},
-        create: { userId: currentUser.id },
-      })
-    : null;
+  const wallet = currentUserWallet?.wallet ?? null;
 
   return (
     <header className="border-b border-edison-border bg-edison-panel">

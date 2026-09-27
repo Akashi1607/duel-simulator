@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { auth } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
 function formatDate(date: Date) {
@@ -20,10 +20,7 @@ function formatDate(date: Date) {
 }
 
 export default async function HomePage() {
-  const session = await auth();
-  const userId = session?.user
-    ? (session.user as { id?: string }).id
-    : undefined;
+  const userId = await getCurrentUserId();
 
   const [user, catalogSize] = await Promise.all([
     userId
