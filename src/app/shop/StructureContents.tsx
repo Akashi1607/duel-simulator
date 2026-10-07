@@ -73,7 +73,7 @@ export function StructureContents({
 
   // Portal: o blur dos painéis prenderia um modal "fixed" dentro deles
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-6" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={deck.name} className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-amber-500/30 bg-zinc-950 shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-4 py-3">
           <div>

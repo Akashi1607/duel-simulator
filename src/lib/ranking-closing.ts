@@ -1,9 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { addDays, formatBrt, weekRange } from "@/lib/brt";
-import { getPeriodStandings, type DateRange } from "@/lib/rankings";
+import { getClanPeriodStandings, getPeriodStandings, type DateRange } from "@/lib/rankings";
 import { deliverReward } from "@/lib/admin-grants";
-import { getPeriodPrizes, getPeriodsStatus, getWeekSchedule, type RankingPeriodKind } from "@/lib/site-settings";
+import { getClanSeasonPrizes, getPeriodPrizes, getPeriodsStatus, getWeekSchedule, type RankingPeriodKind } from "@/lib/site-settings";
+import { grantClanPrize } from "@/lib/clans/service";
 
 // Quem entrega os prêmios automáticos no histórico do Admin
 export const SYSTEM_ADMIN_ID = "system";
@@ -85,6 +86,61 @@ export async function closePeriod(period: Period) {
   return { period, winners: Math.min(TROPHY_PLACES, standings.length) };
 }
 
+/**
+ * Encerra a Season dos clãs: o prêmio de cada colocação (gold e crédito) vai para o
+ * cofre do clã e o resultado sai no Jornal. Roda uma vez só por season (RankingClosing).
+ */
+export async function closeClanSeason(season: { id: string; name: string; startsAt: Date; endsAt: Date }) {
+  const where = { kind_periodKey: { kind: "clan_season", periodKey: season.id } };
+  if (await prisma.rankingClosing.findUnique({ where })) return null;
+  try {
+    await prisma.rankingClosing.create({ data: { kind: "clan_season", periodKey: season.id, startsAt: season.startsAt, endsAt: season.endsAt } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return null;
+    throw err;
+  }
+
+  const standings = await getClanPeriodStandings({ start: season.startsAt, end: season.endsAt });
+  if (standings.length === 0) return { winners: 0 };
+  const tiers = await getClanSeasonPrizes();
+  const lastPlace = tiers.at(-1)?.placement ?? 0;
+  const clans = await prisma.clan.findMany({ where: { id: { in: standings.slice(0, 10).map((r) => r.clanId) } }, select: { id: true, name: true } });
+  const nameOf = (id: string) => clans.find((c) => c.id === id)?.name ?? "Clã";
+  const delivered: string[] = [];
+
+  for (const row of standings.filter((r) => r.position <= lastPlace)) {
+    const tier = tiers.find((t) => t.placement === row.position);
+    if (!tier) continue;
+    const ref = { type: "ClanSeason", id: `${season.id}:${row.clanId}` };
+    try {
+      if (tier.gold > 0) await grantClanPrize(row.clanId, "gold", tier.gold, ref);
+      if (tier.cash > 0) await grantClanPrize(row.clanId, "cash", tier.cash, ref);
+      const parts = [tier.gold > 0 && `${tier.gold} gold`, tier.cash > 0 && `${tier.cash} crédito`].filter(Boolean);
+      delivered.push(`${row.position}º ${nameOf(row.clanId)}: ${parts.join(" + ")}`);
+    } catch (err) {
+      console.error("[ranking-closing] prêmio de clã não entregue", season.id, row.clanId, err);
+    }
+  }
+
+  const lines = standings.slice(0, 10).map((r) => `${PODIUM[r.position - 1] ?? `${r.position}º`} ${nameOf(r.clanId)} — ${r.value} pontos`);
+  const post = await prisma.newsPost.create({
+    data: {
+      type: "tournament",
+      title: `Resultado: Season dos Clãs — ${season.name}`,
+      summary: `${nameOf(standings[0].clanId)} foi o clã campeão da season com ${standings[0].value} pontos!`,
+      content: [
+        "Os clãs que mais pontuaram na season levam prêmios direto para o cofre. Classificação final:",
+        lines.join("\n"),
+        delivered.length > 0 ? `Prêmios entregues ao cofre:\n${delivered.join("\n")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    },
+  });
+  await prisma.rankingClosing.update({ where: { kind_periodKey: { kind: "clan_season", periodKey: season.id } }, data: { newsPostId: post.id } });
+  return { winners: delivered.length };
+}
+
 /** Semana anterior e seasons que já terminaram e ainda não foram encerradas. */
 async function pendingPeriods(now: Date): Promise<Period[]> {
   const periods: Period[] = [];
@@ -128,6 +184,12 @@ export function closeFinishedPeriods(now = new Date()) {
       for (const period of await pendingPeriods(now)) {
         if (since && period.range.end <= since) continue; // terminou antes de ligar
         await closePeriod(period);
+      }
+      // Season dos clãs: fecha junto com a season dos jogadores
+      const ended = await prisma.season.findMany({ where: { endsAt: { lte: now } }, orderBy: { endsAt: "desc" }, take: 6 });
+      for (const season of ended.reverse()) {
+        if (since && season.endsAt <= since) continue;
+        await closeClanSeason(season);
       }
     } catch (err) {
       console.error("[ranking-closing]", err);

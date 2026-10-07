@@ -30,21 +30,24 @@ export async function Navbar() {
       })
     : null;
 
+  // Consultas independentes em paralelo (a navbar roda em toda página)
+  const [existingWallet, clanApprovals, warnings, unreadMessages] = currentUser
+    ? await Promise.all([
+        prisma.wallet.findUnique({ where: { userId: currentUser.id } }),
+        // Pedidos do clã esperando a resposta deste jogador (líder/vice)
+        countPendingApprovals(currentUser.id),
+        // Advertências do Admin que o jogador ainda não confirmou
+        getPendingWarnings(currentUser.id),
+        // Mensagens privadas não lidas (número no envelope)
+        countUnreadMessages(currentUser.id),
+      ])
+    : ([null, 0, [], 0] as [null, number, never[], number]);
+  // Só escreve no banco quando a carteira ainda não existe
   const wallet = currentUser
-    ? await prisma.wallet.upsert({
-        where: { userId: currentUser.id },
-        update: {},
-        create: { userId: currentUser.id },
-      })
+    ? existingWallet ??
+      (await prisma.wallet.upsert({ where: { userId: currentUser.id }, update: {}, create: { userId: currentUser.id } }))
     : null;
-
-  // Pedidos do clã esperando a resposta deste jogador (líder/vice)
-  const clanApprovals = currentUser ? await countPendingApprovals(currentUser.id) : 0;
-  // Advertências do Admin que o jogador ainda não confirmou
-  const warnings = currentUser ? await getPendingWarnings(currentUser.id) : [];
   const admin = isAdmin(currentUser?.role);
-  // Mensagens privadas não lidas (número no envelope)
-  const unreadMessages = currentUser ? await countUnreadMessages(currentUser.id) : 0;
 
   async function logout() {
     "use server";
@@ -52,7 +55,7 @@ export async function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-black/75 backdrop-blur-md">
+    <header className="sticky top-0 z-40 bg-black/90">
       {/* filete dourado na base, o mesmo traço do topo do GlassPanel */}
       <span
         aria-hidden

@@ -21,7 +21,7 @@ export function BulkBar({
 }) {
   return createPortal(
     <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-4">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 rounded-2xl border border-amber-500/50 bg-zinc-950/95 px-4 py-3 shadow-[0_-8px_30px_rgba(245,158,11,0.15)] backdrop-blur sm:flex-row sm:items-center">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 rounded-2xl border border-amber-500/50 bg-zinc-950/95 px-4 py-3 shadow-[0_-8px_30px_rgba(245,158,11,0.15)] sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <GoldIcon className="h-7 w-7 shrink-0 text-amber-300" />
           <div className="min-w-0">

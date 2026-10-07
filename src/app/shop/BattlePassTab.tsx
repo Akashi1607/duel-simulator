@@ -443,7 +443,7 @@ export function BattlePassTab() {
       {/* ESCOLHA 1 ENTRE AS OPÇÕES (playmat ou sleeve) */}
       {choosing &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm" onClick={() => setChoosing(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={() => setChoosing(null)}>
             <div onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl rounded-2xl border border-amber-500/40 bg-zinc-950 p-5">
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">Nível {choosing.level} · escolha o seu</p>
@@ -477,7 +477,7 @@ export function BattlePassTab() {
       {/* REVELAÇÃO DO PRÊMIO (a carta surpresa vira) */}
       {reveal &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm" onClick={() => setReveal(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={() => setReveal(null)}>
             <div onClick={(e) => e.stopPropagation()} className="flex w-full max-w-xs flex-col items-center gap-4 text-center">
               <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">{reveal.mystery ? "Carta surpresa" : "Prêmio resgatado"}</p>
               {reveal.reveal ? (

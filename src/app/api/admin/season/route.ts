@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdmin } from "@/lib/admin-server";
-import { getMatchScoring, getPeriodPrizes, getPeriodsStatus, getWeekSchedule, setMatchScoring, setPeriodPrizes, setPeriodsEnabled, setWeekSchedule } from "@/lib/site-settings";
+import { getClanSeasonPrizes, getMatchScoring, getPeriodPrizes, setClanSeasonPrizes, getPeriodsStatus, getWeekSchedule, setMatchScoring, setPeriodPrizes, setPeriodsEnabled, setWeekSchedule } from "@/lib/site-settings";
 import { createSeason, getCurrentSeason, listSeasons, SeasonError } from "@/lib/seasons";
 import { rewardSchema } from "@/lib/reward-schema";
 import { weekRange } from "@/lib/brt";
@@ -12,8 +12,8 @@ export async function GET() {
   if (!(await getAdmin())) return NextResponse.json({ error: "Só o Admin." }, { status: 403 });
   await closeFinishedPeriods();
   await getCurrentSeason(); // garante a season do mês
-  const [scoring, week, prizes, seasons, status] = await Promise.all([getMatchScoring(), getWeekSchedule(), getPeriodPrizes(), listSeasons(), getPeriodsStatus()]);
-  return NextResponse.json({ scoring, week, currentWeek: weekRange(new Date(), week), prizes, seasons, enabled: status.enabled });
+  const [scoring, week, prizes, clanPrizes, seasons, status] = await Promise.all([getMatchScoring(), getWeekSchedule(), getPeriodPrizes(), getClanSeasonPrizes(), listSeasons(), getPeriodsStatus()]);
+  return NextResponse.json({ scoring, week, currentWeek: weekRange(new Date(), week), prizes, clanPrizes, seasons, enabled: status.enabled });
 }
 
 const outcome = z.object({ win: z.number().int(), loss: z.number().int(), draw: z.number().int() });
@@ -22,6 +22,7 @@ const updateSchema = z.object({
   scoring: z.object({ points: z.object({ random: outcome, official: outcome, quick: outcome }), gold: outcome, tournamentGold: outcome }).optional(),
   week: z.object({ weekday: z.number().int().min(0).max(6), hour: z.number().int().min(0).max(23), minute: z.number().int().min(0).max(59) }).optional(),
   prizes: z.object({ week: tiers, season: tiers }).optional(),
+  clanPrizes: z.array(z.object({ placement: z.number().int().min(1).max(10), gold: z.number().int().min(0).max(100_000_000), cash: z.number().int().min(0).max(1_000_000) })).max(10).optional(),
   enabled: z.boolean().optional(),
 });
 const seasonSchema = z.object({ name: z.string().trim().min(2).max(60), startsAt: z.coerce.date(), endsAt: z.coerce.date() });
@@ -33,11 +34,12 @@ export async function PUT(req: Request) {
   const parsed = updateSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Confira os valores (use números inteiros)." }, { status: 400 });
   try {
-    const { scoring, week, prizes, enabled } = parsed.data;
+    const { scoring, week, prizes, clanPrizes, enabled } = parsed.data;
     if (enabled !== undefined) await setPeriodsEnabled(enabled, admin.id);
     if (scoring) await setMatchScoring(scoring, admin.id);
     if (week) await setWeekSchedule(week, admin.id);
     if (prizes) await setPeriodPrizes(prizes, admin.id);
+    if (clanPrizes) await setClanSeasonPrizes(clanPrizes, admin.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 422 });

@@ -204,6 +204,7 @@ export async function getRanking(category: RankingCategory, period: RankingPerio
 // ---------------------------------------------------------------------------
 
 export const CLAN_RANKING_CATEGORIES = [
+  { id: "points", label: "Pontos", unit: "pontos", description: "Pontos de duelo dos membros desde que entraram no clã. É o que decide a Season dos clãs." },
   { id: "wins", label: "Vitórias", unit: "vitórias", description: "Vitórias dos membros desde que entraram no clã." },
   {
     id: "score",
@@ -242,6 +243,15 @@ async function computeClanValues(category: ClanRankingCategory, range: DateRange
     return values;
   }
 
+  if (category === "points") {
+    const rows = await prisma.matchPlayer.findMany({
+      where: { userId: { in: userIds }, points: { not: null }, match: { finishedAt: range ? inRange(range) : { not: null } } },
+      select: { userId: true, points: true, match: { select: { finishedAt: true } } },
+    });
+    for (const r of rows) add(r.userId, r.match.finishedAt, r.points ?? 0);
+    return values;
+  }
+
   const results = category === "wins" ? [MATCH_RESULT.win] : [MATCH_RESULT.win, MATCH_RESULT.loss];
   const played = await prisma.matchPlayer.findMany({
     where: {
@@ -253,6 +263,17 @@ async function computeClanValues(category: ClanRankingCategory, range: DateRange
   });
   for (const p of played) add(p.userId, p.match.finishedAt, p.result === MATCH_RESULT.win ? 1 : -1);
   return values;
+}
+
+/** Classificação dos clãs por pontos num intervalo (fecha a Season dos clãs). Empates dividem a posição. */
+export async function getClanPeriodStandings(range: DateRange) {
+  const values = await computeClanValues("points", range);
+  const rows = [...values.entries()].filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
+  const positioned = rows.map(([clanId, value], i) => ({ clanId, value, position: i + 1 }));
+  for (let i = 1; i < positioned.length; i++) {
+    if (positioned[i].value === positioned[i - 1].value) positioned[i].position = positioned[i - 1].position;
+  }
+  return positioned;
 }
 
 export async function getClanRanking(category: ClanRankingCategory, period: RankingPeriod, viewerClanId?: string | null) {

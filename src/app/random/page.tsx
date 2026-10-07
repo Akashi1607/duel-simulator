@@ -348,7 +348,7 @@ function RoomCard({
         {/* A banlist da sala em imagens */}
         <button
           onClick={() => setShowBanlist(true)}
-          className={`flex items-center justify-center gap-1.5 self-start rounded-lg border px-3 py-1.5 text-xs font-bold backdrop-blur-sm transition hover:brightness-125 ${theme.badge}`}
+          className={`flex items-center justify-center gap-1.5 self-start rounded-lg border px-3 py-1.5 text-xs font-bold transition hover:brightness-125 ${theme.badge}`}
         >
           <Ban className="h-3.5 w-3.5" /> Ver banlist da sala
         </button>
@@ -375,7 +375,7 @@ function RoomCard({
 
       {/* Sala fechada: selo com a data de abertura */}
       {!room.open && (
-        <div className="relative mt-4 flex items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-black/70 px-3 py-2 text-sm font-bold text-amber-200 backdrop-blur-sm">
+        <div className="relative mt-4 flex items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-black/70 px-3 py-2 text-sm font-bold text-amber-200">
           <Lock className="h-4 w-4" />
           {opensLabel ? `Abre em ${opensLabel}` : "Fechada · em breve"}
         </div>

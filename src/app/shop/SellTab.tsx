@@ -267,7 +267,7 @@ export function SellTab() {
       {totals.copies > 0 &&
         createPortal(
           <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-4">
-            <div className="mx-auto flex max-w-5xl flex-col gap-3 rounded-2xl border border-emerald-500/50 bg-zinc-950/95 px-4 py-3 shadow-[0_-8px_30px_rgba(16,185,129,0.15)] backdrop-blur sm:flex-row sm:items-center">
+            <div className="mx-auto flex max-w-5xl flex-col gap-3 rounded-2xl border border-emerald-500/50 bg-zinc-950/95 px-4 py-3 shadow-[0_-8px_30px_rgba(16,185,129,0.15)] sm:flex-row sm:items-center">
               <div className="flex-1">
                 <p className="text-sm font-bold text-zinc-100">
                   {totals.copies} {totals.copies === 1 ? "cópia escolhida" : "cópias escolhidas"}

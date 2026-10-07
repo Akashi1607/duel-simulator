@@ -244,7 +244,7 @@ function ClanView({ data, act }: { data: ClanData; act: Act }) {
         tone={archetype.tone}
         position={archetype.position}
       >
-        <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-black/50 px-4 py-2.5 backdrop-blur-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-black/50 px-4 py-2.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Cofre</span>
           <span className="flex items-center gap-1.5 font-bold text-amber-400">
             <GoldIcon className="w-4 h-4" />

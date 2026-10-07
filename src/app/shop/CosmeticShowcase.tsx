@@ -85,7 +85,7 @@ export function CosmeticShowcase() {
               )}
             </div>
             {item.locked && (
-              <div className="absolute inset-x-3 top-3 flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/50 bg-black/80 px-2 py-1.5 text-xs font-bold text-amber-200 backdrop-blur-sm">
+              <div className="absolute inset-x-3 top-3 flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/50 bg-black/80 px-2 py-1.5 text-xs font-bold text-amber-200">
                 <Lock className="h-3.5 w-3.5" /> {item.shopUnlockAt ? unlockText(item.shopUnlockAt) : "Em breve"}
               </div>
             )}

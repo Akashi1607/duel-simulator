@@ -512,7 +512,7 @@ function CardsTab() {
 
         // Vai para o body: dentro do GlassPanel (backdrop-filter) o `fixed` ficaria preso à caixa do painel
         return createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in">
             <div 
               className="absolute inset-0" 
               onClick={() => setSelectedListing(null)} 

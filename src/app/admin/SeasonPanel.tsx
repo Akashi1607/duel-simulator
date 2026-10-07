@@ -13,7 +13,7 @@ const OUTCOMES = [
   ["draw", "Empate"],
 ] as const;
 const KINDS: MatchKind[] = ["random", "official", "quick"];
-const PLACES = [1, 2, 3];
+const PLACES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const input = "w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm font-semibold text-zinc-100 focus:border-sky-500/60 focus:outline-none";
 const chip = (active: boolean) =>
   `rounded-lg border px-3 py-1.5 text-xs font-semibold ${active ? "border-sky-500 bg-sky-500/10 text-sky-200" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`;
@@ -58,6 +58,7 @@ export function SeasonPanel({ cosmetics = [] }: { cosmetics?: { id: string; name
   const [week, setWeek] = useState<WeekSchedule>({ weekday: 1, hour: 0, minute: 0 });
   const [currentWeek, setCurrentWeek] = useState<{ start: string; end: string } | null>(null);
   const [prizes, setPrizes] = useState<Prizes>({ week: [], season: [] });
+  const [clanPrizes, setClanPrizes] = useState<{ placement: number; gold: number; cash: number }[]>([]);
   const [prizeTab, setPrizeTab] = useState<PeriodKind>("week");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [edits, setEdits] = useState<Record<string, { name: string; startsAt: string; endsAt: string }>>({});
@@ -77,6 +78,7 @@ export function SeasonPanel({ cosmetics = [] }: { cosmetics?: { id: string; name
     setEdits({});
     const byPlace = (tiers: Tier[]) => PLACES.map((placement) => tiers.find((t) => t.placement === placement) ?? { placement, rewards: [] });
     setPrizes({ week: byPlace(data.prizes.week), season: byPlace(data.prizes.season) });
+    setClanPrizes(PLACES.map((placement) => data.clanPrizes.find((t: { placement: number }) => t.placement === placement) ?? { placement, gold: 0, cash: 0 }));
   }, []);
   useEffect(() => {
     load();
@@ -207,6 +209,30 @@ export function SeasonPanel({ cosmetics = [] }: { cosmetics?: { id: string; name
           className="mt-4 flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-sm font-bold text-black hover:bg-sky-400"
         >
           <Save className="h-4 w-4" /> Salvar prêmios
+        </button>
+
+        <h3 className="mt-6 text-sm font-bold text-zinc-200">Season dos clãs (o prêmio vai para o cofre do clã)</h3>
+        <p className="mt-1 text-xs text-zinc-400">Vence o clã com mais pontos de duelo dos membros na season. Deixe 0 para não dar aquela moeda.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {clanPrizes.map((tier) => (
+            <div key={tier.placement} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2">
+              <span className="w-8 shrink-0 text-xs font-bold text-amber-200">{tier.placement}º</span>
+              <label className="flex flex-1 flex-col text-[10px] font-semibold uppercase text-zinc-500">
+                Gold
+                <input type="number" min={0} value={tier.gold} onChange={(e) => setClanPrizes(clanPrizes.map((t) => (t.placement === tier.placement ? { ...t, gold: Number(e.target.value) } : t)))} className={input} />
+              </label>
+              <label className="flex flex-1 flex-col text-[10px] font-semibold uppercase text-zinc-500">
+                Crédito
+                <input type="number" min={0} value={tier.cash} onChange={(e) => setClanPrizes(clanPrizes.map((t) => (t.placement === tier.placement ? { ...t, cash: Number(e.target.value) } : t)))} className={input} />
+              </label>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => save({ clanPrizes: clanPrizes.filter((t) => t.gold > 0 || t.cash > 0) }, "Prêmios dos clãs salvos.")}
+          className="mt-4 flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-sm font-bold text-black hover:bg-sky-400"
+        >
+          <Save className="h-4 w-4" /> Salvar prêmios dos clãs
         </button>
       </section>
 

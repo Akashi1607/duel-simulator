@@ -67,7 +67,7 @@ export function CardDetailModal({ card, onClose, actions }: { card: Card; onClos
 
   // Vai para o body: dentro de um painel com backdrop-filter o `fixed` ficaria preso
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal aria-label={card.name}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal aria-label={card.name}>
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-amber-500/30 bg-zinc-900 shadow-[0_0_40px_rgba(245,158,11,0.12)] md:flex-row">

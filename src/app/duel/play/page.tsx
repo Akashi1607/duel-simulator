@@ -135,7 +135,7 @@ function BracketWaiting({ info }: { info: BracketRoomInfo }) {
 /** Torneio: depois de cada duelo, o placar e o botão para o próximo (ou o resultado do confronto). */
 function BracketNextPanel({ info }: { info: BracketRoomInfo }) {
   return (
-    <div className="fixed bottom-6 left-1/2 z-[200] w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-edison-gold/40 bg-[#15131b]/95 p-4 text-center shadow-2xl backdrop-blur">
+    <div className="fixed bottom-6 left-1/2 z-[200] w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-edison-gold/40 bg-[#15131b]/95 p-4 text-center shadow-2xl">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-edison-gold">
         {info.tournament} · {info.stage}
       </p>
@@ -932,7 +932,7 @@ function CardInspector({ card }: { card?: Card }) {
       )}
 
       {reportOpen && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-4">
           <div className="w-full rounded-xl border border-red-400/25 bg-[#15131b] p-4 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -971,7 +971,7 @@ function TurnBadge({ turn, isYourTurn }: { turn: number; isYourTurn: boolean }) 
   return (
     <div
       title={isYourTurn ? "Seu turno" : "Turno do oponente"}
-      className={`flex items-center gap-2 rounded-full border border-white/15 bg-[#07090d]/85 px-3 py-1 shadow-lg backdrop-blur ${UI_TEXT}`}
+      className={`flex items-center gap-2 rounded-full border border-white/15 bg-[#07090d]/85 px-3 py-1 shadow-lg ${UI_TEXT}`}
     >
       <span
         className={`h-2 w-2 rounded-full ${
@@ -996,7 +996,7 @@ function PhaseTrack({
   selectPhase: (phase: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-[3px] rounded-full border border-edison-gold/30 bg-[#07090d]/85 p-[3px] shadow-[0_0_18px_rgba(0,0,0,0.6)] backdrop-blur">
+    <div className="flex items-center gap-[3px] rounded-full border border-edison-gold/30 bg-[#07090d]/85 p-[3px] shadow-[0_0_18px_rgba(0,0,0,0.6)]">
       {PHASES.map((phase) => (
         <button
           key={phase}
@@ -1076,7 +1076,7 @@ function DuelistHud({
   const name = nickname ?? (opponent ? "Oponente" : "Você");
   return (
     <section
-      className={`flex w-full flex-col items-center rounded-lg border bg-[#07090d]/80 px-1 py-[calc(var(--z)*0.08)] shadow-lg backdrop-blur-sm ${
+      className={`flex w-full flex-col items-center rounded-lg border bg-[#07090d]/80 px-1 py-[calc(var(--z)*0.08)] shadow-lg ${
         opponent ? "border-rose-400/30" : "border-sky-400/30"
       }`}
     >
@@ -1175,7 +1175,7 @@ function DuelResultScreen({
   const StatusIcon = youWon ? Crown : ShieldX;
   return (
     <>
-      <div className="absolute inset-0 z-[100] bg-neutral-700/45 backdrop-blur-[2px] backdrop-grayscale animate-overlay-fade" />
+      <div className="absolute inset-0 z-[100] bg-neutral-700/45 animate-overlay-fade" />
 
       <div
         aria-hidden
@@ -1401,7 +1401,21 @@ function PreDuelGate({
 
   useEffect(() => {
     let active = true;
+    let inFlight = false;
+    let lastJson = "";
     async function refresh() {
+      // Não empilha pedidos se o servidor está devagar; aba escondida não precisa de poll rápido
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        await fetchRoom();
+      } catch {
+        if (active) setSyncError(true);
+      } finally {
+        inFlight = false;
+      }
+    }
+    async function fetchRoom() {
       const response = await fetch(
         `/api/duel/rooms/${roomId}?time=${Date.now()}`,
         {
@@ -1410,7 +1424,14 @@ function PreDuelGate({
         }
       );
       if (response.ok && active) {
-        const nextRoom: RoomState = await response.json();
+        const text = await response.text();
+        // Nada mudou: não re-renderiza o tabuleiro inteiro
+        if (text === lastJson) {
+          setSyncError(false);
+          return;
+        }
+        lastJson = text;
+        const nextRoom: RoomState = JSON.parse(text);
         // Torneio: saiu da espera e o duelo começou → apito (o jogador pode ter saído da tela)
         if (previousStatus.current === "waiting" && (nextRoom.status === "rps" || nextRoom.status === "choosing")) alertMatchFound();
         previousStatus.current = nextRoom.status;
@@ -1446,7 +1467,7 @@ function PreDuelGate({
 
   if (room?.status === "walkover") {
     return (
-      <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#080b12]/95 p-6 backdrop-blur-lg">
+      <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#080b12]/95 p-6">
         <section className="w-full max-w-md rounded-3xl border border-edison-gold/25 bg-[#15131b] p-8 text-center shadow-2xl">
           {room.youWon ? <Crown className="mx-auto h-12 w-12 text-edison-gold" /> : <ShieldX className="mx-auto h-12 w-12 text-red-300" />}
           <h1 className="mt-4 text-2xl font-black">
@@ -1506,7 +1527,7 @@ function PreDuelGate({
   }
 
   return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#080b12]/95 p-6 backdrop-blur-lg">
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#080b12]/95 p-6">
       <section className="w-full max-w-xl rounded-3xl border border-edison-gold/25 bg-[#15131b] p-8 text-center shadow-2xl">
         {room?.status === "waiting" && room.bracket ? (
           <BracketWaiting info={room.bracket} />
@@ -1975,7 +1996,7 @@ function DuelPlayBoard() {
 
       {specialSummonOpen && !gameState?.decision && (
         <div className={`${BOARD_OVERLAY} z-[94] flex items-center justify-center bg-black/65 p-4 animate-overlay-fade`}>
-          <div className="w-full max-w-2xl rounded-2xl border border-violet-400/35 bg-[#121019]/95 p-5 text-center shadow-2xl backdrop-blur animate-modal-pop">
+          <div className="w-full max-w-2xl rounded-2xl border border-violet-400/35 bg-[#121019]/95 p-5 text-center shadow-2xl animate-modal-pop">
             <h2 className="text-xl font-black">Invocações especiais disponíveis</h2>
             <p className="mt-1 text-xs text-white/50">
               O OCGCore continuará pedindo materiais, posição e zona quando necessário.
@@ -2023,7 +2044,7 @@ function DuelPlayBoard() {
         gameState.decision.type !== "battle_targets" &&
         !inlinePlaceDecision && (
         <div className={`${BOARD_OVERLAY} z-[95] flex items-center justify-center bg-black/65 p-4 animate-overlay-fade`}>
-          <div className="w-full max-w-2xl rounded-2xl border border-edison-gold/35 bg-[#121019]/95 p-5 text-center shadow-2xl backdrop-blur animate-modal-pop">
+          <div className="w-full max-w-2xl rounded-2xl border border-edison-gold/35 bg-[#121019]/95 p-5 text-center shadow-2xl animate-modal-pop">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-edison-gold">
               Decisão do efeito
             </p>
@@ -2515,7 +2536,7 @@ function DuelPlayBoard() {
 
       {gameState?.chain && !gameState.decision && (
         <div className={`${BOARD_OVERLAY} z-[90] flex items-center justify-center bg-black/40 p-4 pointer-events-none animate-overlay-fade`}>
-          <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-edison-gold/35 bg-[#121019]/95 p-5 text-center shadow-2xl backdrop-blur animate-modal-pop">
+          <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-edison-gold/35 bg-[#121019]/95 p-5 text-center shadow-2xl animate-modal-pop">
             {/* Sem elos, é uma janela aberta pelo motor para um efeito
                 relevante do momento — ex.: Kalut durante o cálculo de dano. */}
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-edison-gold">
@@ -2615,7 +2636,7 @@ function DuelPlayBoard() {
           <button
             type="button"
             onClick={() => setResultHidden(false)}
-            className={`pointer-events-auto rounded-full border px-5 py-2 text-xs font-black shadow-2xl backdrop-blur transition hover:brightness-110 animate-modal-pop ${
+            className={`pointer-events-auto rounded-full border px-5 py-2 text-xs font-black shadow-2xl transition hover:brightness-110 animate-modal-pop ${
               gameState.youWon
                 ? "border-edison-gold/60 bg-[#1c160a]/90 text-edison-gold"
                 : "border-red-500/50 bg-[#1f0a0d]/90 text-red-200"
@@ -2780,7 +2801,7 @@ function DuelPlayBoard() {
               <div className="ml-[calc(var(--z)*0.3)] flex w-[calc(var(--z)*1.54)] justify-center">
                 {statusMessage && (
                   <div
-                    className={`flex flex-col items-center gap-1 rounded-lg border px-2.5 py-1 text-center font-semibold shadow-lg backdrop-blur ${UI_TEXT} ${
+                    className={`flex flex-col items-center gap-1 rounded-lg border px-2.5 py-1 text-center font-semibold shadow-lg ${UI_TEXT} ${
                       statusIsPrompt
                         ? "border-edison-gold/60 bg-[#1a1407]/90 text-edison-gold"
                         : "border-white/15 bg-[#07090d]/85 text-white/75"
@@ -2956,7 +2977,7 @@ function DuelPlayBoard() {
                   >
                     {selectedHandIndex === index &&
                       selectedActions.length > 0 && (
-                        <div className="absolute bottom-[calc(100%+14px)] left-1/2 z-50 flex -translate-x-1/2 flex-col gap-1 rounded-lg border border-edison-gold/40 bg-[#0a0c11]/95 p-1.5 shadow-2xl backdrop-blur animate-modal-pop">
+                        <div className="absolute bottom-[calc(100%+14px)] left-1/2 z-50 flex -translate-x-1/2 flex-col gap-1 rounded-lg border border-edison-gold/40 bg-[#0a0c11]/95 p-1.5 shadow-2xl animate-modal-pop">
                           {selectedActions.map((action) => (
                             <button
                               key={action}
@@ -3019,7 +3040,7 @@ function DuelPlayBoard() {
 
       {actionError && (
         <div className="pointer-events-none fixed bottom-5 left-[var(--panel-w)] right-0 z-[120] flex justify-center px-4">
-          <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg border border-red-500/40 bg-red-950/95 px-4 py-2.5 text-xs text-red-100 shadow-2xl backdrop-blur animate-modal-pop">
+          <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg border border-red-500/40 bg-red-950/95 px-4 py-2.5 text-xs text-red-100 shadow-2xl animate-modal-pop">
             <span className="flex-1">{actionError}</span>
             <button
               type="button"

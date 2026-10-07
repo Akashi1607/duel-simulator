@@ -168,7 +168,7 @@ export function SpectatorView({ matchId, onClose }: { matchId: string; onClose: 
 
   // Portal: o blur dos painéis prenderia um modal "fixed" dentro deles
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-2 backdrop-blur-sm sm:p-5" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-2 sm:p-5" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Assistir duelo" className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-emerald-500/30 bg-[radial-gradient(ellipse_at_center,#1b1a24,#09090b)] shadow-2xl">
         <header className="flex items-center gap-3 border-b border-zinc-800 px-4 py-2.5">
           <Eye className="h-4 w-4 text-emerald-300" />

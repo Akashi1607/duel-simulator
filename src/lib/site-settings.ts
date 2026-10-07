@@ -145,11 +145,60 @@ export async function setWeekSchedule(schedule: WeekSchedule, adminId: string) {
   await writeJson(WEEK_SCHEDULE, schedule, adminId);
 }
 
+const gold = (amount: number): GrantPayload => ({ kind: "currency", currency: "gold", amount });
+const credit = (amount: number): GrantPayload => ({ kind: "currency", currency: "cash", amount });
+const dust = (itemKey: "po_milenio_secret" | "po_milenio_ultra" | "po_milenio_raro"): GrantPayload => ({ kind: "item", itemKey, quantity: 1 });
+
+// Prêmios padrão da Season mensal (valem até o Admin salvar outros)
+const DEFAULT_SEASON_PRIZES: PeriodPrizeTier[] = [
+  { placement: 1, rewards: [gold(15000), credit(100), dust("po_milenio_secret")] },
+  { placement: 2, rewards: [gold(10000), credit(50), dust("po_milenio_ultra")] },
+  { placement: 3, rewards: [gold(6000), credit(25), dust("po_milenio_raro")] },
+  { placement: 4, rewards: [gold(3000)] },
+  ...[5, 6, 7, 8, 9, 10].map((placement) => ({ placement, rewards: [gold(1500)] })),
+];
+
 export async function getPeriodPrizes(db: Db = prisma): Promise<PeriodPrizes> {
   const saved = await readJson<Partial<PeriodPrizes>>(db, PERIOD_PRIZES, {});
   const clean = (tiers: unknown) =>
     Array.isArray(tiers) ? tiers.filter((t) => t && Number.isInteger(t.placement) && Array.isArray(t.rewards)).sort((a, b) => a.placement - b.placement) : [];
-  return { week: clean(saved.week), season: clean(saved.season) };
+  return { week: clean(saved.week), season: saved.season === undefined ? DEFAULT_SEASON_PRIZES : clean(saved.season) };
+}
+
+// Season dos clãs: o prêmio de cada colocação vai inteiro para o cofre do clã
+export interface ClanPrizeTier {
+  placement: number;
+  gold: number;
+  cash: number;
+}
+const CLAN_SEASON_PRIZES = "clan_season_prizes";
+const DEFAULT_CLAN_SEASON_PRIZES: ClanPrizeTier[] = [
+  { placement: 1, gold: 150_000, cash: 500 },
+  { placement: 2, gold: 90_000, cash: 300 },
+  { placement: 3, gold: 50_000, cash: 150 },
+  { placement: 4, gold: 30_000, cash: 80 },
+  ...[5, 6, 7, 8, 9, 10].map((placement) => ({ placement, gold: 10_000, cash: 40 })),
+];
+
+export async function getClanSeasonPrizes(db: Db = prisma): Promise<ClanPrizeTier[]> {
+  const row = await db.siteSetting.findUnique({ where: { key: CLAN_SEASON_PRIZES } });
+  if (!row) return DEFAULT_CLAN_SEASON_PRIZES;
+  try {
+    const saved = JSON.parse(row.value);
+    if (!Array.isArray(saved)) return DEFAULT_CLAN_SEASON_PRIZES;
+    return saved
+      .filter((t) => t && Number.isInteger(t.placement) && positiveInt(t.gold) && positiveInt(t.cash))
+      .sort((a, b) => a.placement - b.placement);
+  } catch {
+    return DEFAULT_CLAN_SEASON_PRIZES;
+  }
+}
+
+export async function setClanSeasonPrizes(tiers: ClanPrizeTier[], adminId: string) {
+  if (!tiers.every((t) => Number.isInteger(t.placement) && t.placement >= 1 && positiveInt(t.gold, 100_000_000) && positiveInt(t.cash, 1_000_000))) {
+    throw new Error("Use números inteiros, sem negativos.");
+  }
+  await writeJson(CLAN_SEASON_PRIZES, tiers, adminId);
 }
 
 export async function setPeriodPrizes(prizes: PeriodPrizes, adminId: string) {

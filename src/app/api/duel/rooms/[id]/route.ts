@@ -17,6 +17,31 @@ export const dynamic = "force-dynamic";
 
 const MESSAGE_SELECT_CHAIN = 16;
 
+// Cartas mudam raramente: cache em memória evita ler as cartas do banco a cada poll
+type CardRow = Awaited<ReturnType<typeof prisma.card.findMany>>[number];
+const cardCache = new Map<number, { card: CardRow; at: number }>();
+const CARD_TTL_MS = 5 * 60_000;
+
+async function loadCards(ids: number[]) {
+  const now = Date.now();
+  const unique = Array.from(new Set(ids));
+  const found: CardRow[] = [];
+  const missing: number[] = [];
+  for (const id of unique) {
+    const hit = cardCache.get(id);
+    if (hit && now - hit.at < CARD_TTL_MS) found.push(hit.card);
+    else missing.push(id);
+  }
+  if (missing.length) {
+    const rows = await prisma.card.findMany({ where: { id: { in: missing } } });
+    for (const card of rows) {
+      cardCache.set(card.id, { card, at: now });
+      found.push(card);
+    }
+  }
+  return found;
+}
+
 const NO_CACHE_HEADERS = {
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   Pragma: "no-cache",
@@ -33,8 +58,9 @@ export async function GET(
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
+  // Só grava a presença a cada ~10s (o poll roda a cada segundo)
   await prisma.matchPlayer.updateMany({
-    where: { matchId: params.id, userId },
+    where: { matchId: params.id, userId, lastSeenAt: { lt: new Date(Date.now() - 10_000) } },
     data: { lastSeenAt: new Date() },
   });
 
@@ -254,7 +280,7 @@ export async function GET(
       ]
     : [];
   const visibleCards = ownState
-    ? await prisma.card.findMany({ where: { id: { in: visibleCardIds } } })
+    ? await loadCards(visibleCardIds)
     : [];
   const cardById = new Map(visibleCards.map((card) => [card.id, card]));
   const isYourTurn = storedState?.turnPlayerId === userId;

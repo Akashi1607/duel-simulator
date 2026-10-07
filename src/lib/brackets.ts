@@ -263,8 +263,13 @@ export async function onBracketGameFinished(matchId: string) {
 }
 
 /** O jogador abriu a sala do duelo: confere o deck e marca que entrou. */
+/** Salas que não são de torneio (seriesId nunca muda): evita consultas a cada poll da sala. */
+const nonBracketMatches = new Set<string>();
+
 export async function joinBracketGame(matchId: string, userId: string) {
+  if (nonBracketMatches.has(matchId)) return { issue: null };
   const m = await prisma.match.findUnique({ where: { id: matchId }, include: { players: true } });
+  if (m && !m.seriesId) nonBracketMatches.add(matchId);
   if (!m?.seriesId || m.status !== "waiting") return { issue: null };
   const me = m.players.find((p) => p.userId === userId);
   if (!me) return { issue: null };
@@ -429,6 +434,7 @@ export async function getMyBracketMatch(userId: string) {
 
 /** Dados do confronto para a tela do duelo (espera, W.O., placar e o próximo duelo). */
 export async function getBracketRoomInfo(matchId: string, userId: string, issue: string | null) {
+  if (nonBracketMatches.has(matchId)) return null;
   const m = await prisma.match.findUnique({
     where: { id: matchId },
     include: { series: { include: { tournament: { select: { name: true } } } }, players: { select: { userId: true, joinedAt: true } } },

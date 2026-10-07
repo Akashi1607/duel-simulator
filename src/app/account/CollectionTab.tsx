@@ -175,7 +175,7 @@ function EvolveModal({
 
   // Vai para o body: dentro de um painel com backdrop-filter o `fixed` ficaria preso
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col gap-6 overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-6 md:flex-row">
         <button onClick={onClose} className="absolute right-3 top-3 rounded-full bg-zinc-800 p-1.5 text-zinc-400 hover:text-white" aria-label="Fechar">
